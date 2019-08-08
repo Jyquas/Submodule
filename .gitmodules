@@ -1,0 +1,6 @@
+[submodule "example-dependency"]
+	path = example-dependency
+	url = https://github.com/githubtraining/example-dependency
+[submodule "example-submodule"]
+	path = example-submodule
+	url = https://github.com/githubtraining/example-submodule.git
