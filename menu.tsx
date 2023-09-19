@@ -1,68 +1,41 @@
 import React, { useRef, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-
-// Components
 import TopBar from './components/TopBar';
 import Logo from './components/Logo';
 import TopBarTitle from './components/TopBarTitle';
 import Hamburger from './components/Hamburger';
 import Nav from './components/Nav';
 import MainList from './components/MainList';
-import MegaList from './components/MegaList';
 import MainNavItem from './components/MainNavItem';
 import MainNavItemLink from './components/MainNavItemLink';
-import NavItemDescription from './components/NavItemDescription';
 
-// State Machines
-import { MenuStateMachine } from './state-machines/menus';
+// Example state machine
+const MenuStateMachine = (state) => {
+  return state === 'closed' ? 'open' : 'closed';
+};
 
-interface IMenuItem {
-  title: string;
-  url: string;
-  description?: string;
-  icon?: string;
-  children?: IMenuItem[];
-}
-
-interface MenuProps {
-  logoImage: string;
-  data: IMenuItem[];
-}
-
-const Menu: React.FC<MenuProps> = ({ logoImage, data }) => {
-  // ... existing state and functions
-  const [megaMenuState, setMegaMenuState] = useState('');
-  const [subMenuState, setSubMenuState] = useState('');
-  const [subSubMenuState, setSubSubMenuState] = useState('');
+const Menu = ({ logoImage, data }) => {
   const [activeMenus, setActiveMenus] = useState([]);
-  const [isMobile, setIsMobile] = useState(true);
   const wrapperRef = useRef(null);
-  
-  // ... other existing logic and functions
 
-  const generateNavItems = (items: IMenuItem[]) => {
+  const handleMouseEnter = (menuId) => {
+    setActiveMenus([...activeMenus, menuId]);
+  };
+
+  const handleMouseLeave = (menuId) => {
+    setActiveMenus(activeMenus.filter((id) => id !== menuId));
+  };
+
+  const generateNavItems = (items) => {
     return items.map((item, index) => (
-      <MainNavItem key={index} role="none" id={`nav-${item.title}`} isChildren={item.children ? true : false}>
-        {item.icon && (
-          <Logo
-            id={`menuitem-icon-${item.title}`}
-            src={item.icon}
-            alt={`${item.title} icon`}
-            rel="icon"
-          />
-        )}
-        <MainNavItemLink id={`menuitem-${item.title}`} role="menuitem" href={item.url}>
+      <MainNavItem
+        key={index}
+        onMouseEnter={() => handleMouseEnter(`menu-${item.title}`)}
+        onMouseLeave={() => handleMouseLeave(`menu-${item.title}`)}
+      >
+        <MainNavItemLink href={item.url}>
           {item.title}
         </MainNavItemLink>
-        {item.description && <NavItemDescription>{item.description}</NavItemDescription>}
-        {item.children && (
-          <MegaList
-            id={`menu-${item.title}`}
-            activeState={activeMenus.includes(`menu-${item.title}`) ? 'open' : 'closed'}
-          >
-            {generateNavItems(item.children)}
-          </MegaList>
-        )}
       </MainNavItem>
     ));
   };
@@ -71,23 +44,19 @@ const Menu: React.FC<MenuProps> = ({ logoImage, data }) => {
     <div role="navigation" className="rmm__root" ref={wrapperRef}>
       <TopBar>
         {logoImage && (
-          <Logo
-            id="menuitem-logo"
-            src={logoImage}
-            alt="Your brand's logo"
-            rel="home"
-          />
+          <Logo id="menuitem-logo" src={logoImage} alt="Your brand's logo" rel="home" />
         )}
         <TopBarTitle>Your Brand Name</TopBarTitle>
       </TopBar>
       <Hamburger
         label="Menu"
-        state={megaMenuState}
-        onClick={(e) => toggleMegaMenu(e, 'nav-main')}
+        state={activeMenus.length > 0 ? 'open' : 'closed'}
+        onMouseEnter={() => handleMouseEnter('nav-main')}
+        onMouseLeave={() => handleMouseLeave('nav-main')}
       />
       <Nav
         id="site-nav"
-        activeState={megaMenuState}
+        activeState={activeMenus.length > 0 ? 'open' : 'closed'}
         ariaLabel="Main Navigation"
       >
         <MainList id="menubar-main" ariaLabel="Main Menu">
@@ -98,9 +67,16 @@ const Menu: React.FC<MenuProps> = ({ logoImage, data }) => {
   );
 };
 
+Menu.defaultProps = { logoImage: null };
+
 Menu.propTypes = {
-  logoImage: PropTypes.string.isRequired,
-  data: PropTypes.array.isRequired,
+  logoImage: PropTypes.string,
+  data: PropTypes.arrayOf(
+    PropTypes.shape({
+      title: PropTypes.string.isRequired,
+      url: PropTypes.string.isRequired,
+    })
+  ).isRequired,
 };
 
 export default Menu;
