@@ -1,73 +1,84 @@
-// ... (Your other imports here)
+import React, { useState } from 'react';
+import MainList from './components/MainList';
+import MainNavItem from './components/MainNavItem';
+import MainNavItemLink from './components/MainNavItemLink';
+import MegaList from './components/MegaList';
+import NavItem from './components/NavItem';
+import NavItemLink from './components/NavItemLink';
 import NavItemDescription from './components/NavItemDescription';
 
-// ... (Your existing component setup, states, and hooks here)
+interface MenuData {
+  title: string;
+  url: string;
+  children?: { title: string; url: string; description?: string }[];
+}
 
-const Menu = ({ logoImage }) => {
-  // ... (Your existing states and hooks here)
+const menuData: MenuData[] = [
+  {
+    title: 'Root 1',
+    url: '#root1',
+    children: [
+      { title: 'Child 1', url: '#child1', description: 'Description 1' },
+      { title: 'Child 2', url: '#child2', description: 'Description 2' }
+    ]
+  },
+  {
+    title: 'Root 2',
+    url: '#root2',
+    children: [
+      { title: 'Child 1', url: '#child1' }
+    ]
+  }
+];
 
-  const generateNavItems = (items) => {
-    return items.map((item, index) => {
-      const menuId = `menu-${item.title}`;
-      const hasSubmenu = !!item.children && item.children.length > 0;
+const Menu: React.FC = () => {
+  const [activeTopLevelMenu, setActiveTopLevelMenu] = useState<string | null>(null);
 
-      return (
-        <MainNavItem
-          key={index}
-          id={`nav-${item.title}`}
-          onMouseEnter={() => handleMouseEnter(menuId)}
-          onMouseLeave={() => handleMouseLeave(menuId)}
+  const handleMouseEnter = (menuId: string) => {
+    setActiveTopLevelMenu(menuId);
+  };
+
+  const handleMouseLeave = () => {
+    setActiveTopLevelMenu(null);
+  };
+
+  const generateNavItems = (items: MenuData[]) => {
+    return items.map((item, index) => (
+      <MainNavItem
+        key={index}
+        id={`nav-${item.title}`}
+        onMouseEnter={() => handleMouseEnter(`menu-${item.title}`)}
+        onMouseLeave={handleMouseLeave}
+      >
+        <MainNavItemLink
+          id={`menuitem-${item.title}`}
+          href={item.url}
         >
-          <MainNavItemLink
-            id={`nav-item-link-${index}`}
-            href={item.url}
-            ariaHaspopup={hasSubmenu ? "true" : undefined}
-            ariaControls={hasSubmenu ? menuId : undefined}
-            onClick={(e) => hasSubmenu && toggleSubMenu(e, menuId)}
-            onKeyDown={(e) => hasSubmenu && a11yClick(e) && toggleSubMenu(e, menuId)}
-          >
-            {item.title}
-          </MainNavItemLink>
-          {
-            hasSubmenu && (
-              <MegaList id={menuId}>
-                {item.children.map((child, childIndex) => (
-                  <NavItem id={`nav-${child.title}`} key={childIndex}>
-                    <NavItemLink
-                      id={`menuitem-${child.title}`}
-                      href={child.url}
-                    >
-                      {child.title}
-                    </NavItemLink>
-                    {child.description && (
-                      <NavItemDescription>
-                        {child.description}
-                      </NavItemDescription>
-                    )}
-                  </NavItem>
-                ))}
-              </MegaList>
-            )
-          }
-        </MainNavItem>
-      );
-    });
+          {item.title}
+        </MainNavItemLink>
+        {activeTopLevelMenu === `menu-${item.title}` && (
+          <MegaList id={`menu-${item.title}`}>
+            {item.children && item.children.map((child, childIndex) => (
+              <NavItem key={childIndex} id={`nav-${child.title}`}>
+                <NavItemLink id={`menuitem-${child.title}`} href={child.url}>
+                  {child.title}
+                </NavItemLink>
+                {child.description && <NavItemDescription>{child.description}</NavItemDescription>}
+              </NavItem>
+            ))}
+          </MegaList>
+        )}
+      </MainNavItem>
+    ));
   };
 
   return (
-    <div role="navigation" className="rmm__root" ref={wrapperRef}>
-      <Nav
-        id="site-nav"
-        activeState={megaMenuState}
-        ariaLabel="Main Navigation"
-      >
-        <MainList id="menubar-main" ariaLabel="Main Menu">
-          {generateNavItems(menuData)}
-        </MainList>
-      </Nav>
+    <div role="navigation">
+      <MainList id="menubar-main">
+        {generateNavItems(menuData)}
+      </MainList>
     </div>
   );
 };
 
-// ... (Your existing PropTypes and export here)
-
+export default Menu;
