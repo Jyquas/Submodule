@@ -1,0 +1,48 @@
+<template>
+  <div class="file-upload-container">
+    <!-- ✅ Button Styled Upload -->
+    <v-btn color="primary" block @click="triggerFileSelect">
+      Upload File
+    </v-btn>
+
+    <!-- ✅ Hidden File Input -->
+    <v-file-input
+      ref="fileInputRef"
+      v-model="selectedFile"
+      accept="image/*"
+      @change="handleFileUpload"
+      hide-input
+      class="hidden-file-input"
+    />
+  </div>
+</template>
+
+<script lang="ts">
+  import { defineComponent, ref, nextTick } from "vue";
+
+  export default defineComponent({
+    name: "FileUploadComponent",
+    data() {
+      return {
+        selectedFile: null as File | null,
+      };
+    },
+    methods: {
+      triggerFileSelect() {
+        nextTick(() => {
+          (this.$refs.fileInputRef as any)?.$el.querySelector("input")?.click();
+        });
+      },
+      handleFileUpload() {
+        console.log("Selected File:", this.selectedFile);
+      },
+    },
+  });
+</script>
+
+<style scoped>
+  /* ✅ Hide default input */
+  .hidden-file-input {
+    display: none;
+  }
+</style>
