@@ -1,0 +1,271 @@
+<template>
+  <div class="text-center pa-4">
+    <!-- ✅ Show either the camera button OR the file upload -->
+    <v-btn v-if="cameraAvailable" @click="openCamera" color="primary">
+      Start Scanning
+    </v-btn>
+
+    <template v-else>
+      <!-- ✅ Hidden File Input -->
+      <v-file-input
+        ref="fileInputRef"
+        v-model="selectedFile"
+        label="Upload an Image"
+        accept="image/*"
+        show-size
+        clearable
+        class="hidden-file-input"
+        @change="handleFileUpload"
+      />
+
+      <!-- ✅ Show "Submit Image" button to trigger file input -->
+      <v-btn color="success" block @click="triggerFileSelect">
+        Choose File
+      </v-btn>
+    </template>
+   
+
+    <!-- ✅ Draggable Dialog (Only opens when scanning) -->
+    <dialog ref="dialog" class="modal" @mousedown="startDrag">
+      <form method="dialog" class="modal-box">
+        <div class="modal-header">
+          <h3>Scanning for QR Code</h3>
+          <button @click.prevent="closeCamera" class="btn-close">✖</button>
+        </div>
+
+        <div class="modal-content">
+          <video ref="videoElement" class="qr-video"></video>
+        </div>
+
+        <div class="modal-action">
+          <button @click.prevent="closeCamera" class="btn btn-secondary">
+            Close
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <v-alert v-if="qrCodeData" type="success" class="qr-result">
+      QR Code Detected: {{ qrCodeData }}
+    </v-alert>
+
+   
+  </div>
+</template>
+
+
+<script lang="ts">
+import { defineComponent, ref, onMounted, nextTick } from "vue";
+import { BrowserMultiFormatReader, Result } from "@zxing/library";
+
+export default defineComponent({
+  name: "QrCodeScanner",
+  setup() {
+    const dialog = ref<HTMLDialogElement | null>(null);
+    const cameraAvailable = ref<boolean>(false);
+    const qrCodeData = ref<string | null>(null);
+    const selectedFile = ref<File | null>(null);
+    const videoElement = ref<HTMLVideoElement | null>(null);
+      const fileInputRef = ref<HTMLInputElement | null>(null);
+    let codeReader: BrowserMultiFormatReader | null = null;
+    let stream: MediaStream | null = null;
+
+    let isDragging = false;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    // ✅ Check if Camera is Available
+    onMounted(async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        cameraAvailable.value = false; //devices.some((device) => device.kind === "videoinput");
+      } catch (error) {
+        console.warn("No camera detected, switching to file upload mode.");
+        cameraAvailable.value = false;
+      }
+    });
+
+    // ✅ Open Camera and Start Scanning
+    const openCamera = async () => {
+      if (!dialog.value) return;
+      dialog.value.showModal(); // ✅ Open native dialog
+      await nextTick(); // ✅ Ensure video element is rendered
+      startScanning();
+    };
+
+    const triggerFileSelect = () => {
+      fileInputRef.value?.click();
+};
+    // ✅ Start Scanning for QR Code
+    const startScanning = async () => {
+      if (!videoElement.value) {
+        console.warn("Video element is not available.");
+        return;
+      }
+
+      codeReader = new BrowserMultiFormatReader();
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        videoElement.value.srcObject = stream;
+        videoElement.value.setAttribute("playsinline", "true");
+        videoElement.value.play();
+        scanContinuously();
+      } catch (error) {
+        console.error("Error accessing camera:", error);
+        closeCamera();
+      }
+    };
+
+    // ✅ Continuous QR Code Scanning
+    const scanContinuously = async () => {
+      if (!videoElement.value || !codeReader) return;
+
+      try {
+        const result: Result = await codeReader.decodeFromVideoElement(videoElement.value);
+        qrCodeData.value = result.getText();
+        closeCamera(); // ✅ Close dialog when QR code is detected
+      } catch (error) {
+        requestAnimationFrame(scanContinuously);
+      }
+    };
+
+    // ✅ Close Camera and Stop Scanning
+    const closeCamera = () => {
+      if (!dialog.value) return;
+      dialog.value.close(); // ✅ Close native dialog
+      if (codeReader) {
+        codeReader.reset();
+      }
+      if (stream) {
+        stream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
+        stream = null;
+      }
+    };
+
+    // ✅ Handle File Upload for QR Code
+    const handleFileUpload = (event: Event) => {
+      const input = event.target as HTMLInputElement;
+      if (input.files && input.files.length > 0) {
+        readQRCodeFromImage(input.files[0]);
+      }
+    };
+
+    // ✅ Read QR Code from Uploaded Image
+    const readQRCodeFromImage = async (file: File) => {
+      const image = new Image();
+      image.src = URL.createObjectURL(file);
+      image.onload = async () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = image.width;
+        canvas.height = image.height;
+        const ctx = canvas.getContext("2d");
+
+        if (ctx) {
+          ctx.drawImage(image, 0, 0);
+          const dataUrl = canvas.toDataURL("image/png");
+
+          try {
+            const result = await codeReader!.decodeFromImage(dataUrl);
+            qrCodeData.value = result.getText();
+          } catch (error) {
+            console.error("Error reading QR Code from image:", error);
+          }
+        }
+      };
+    };
+
+    // ✅ Upload QR Code Data
+    const uploadQRData = () => {
+      console.log("Uploading QR Data:", qrCodeData.value);
+    };
+
+    // ✅ Make Dialog Movable
+    const startDrag = (event: MouseEvent) => {
+      if (!dialog.value) return;
+      isDragging = true;
+      offsetX = event.clientX - dialog.value.getBoundingClientRect().left;
+      offsetY = event.clientY - dialog.value.getBoundingClientRect().top;
+
+      document.addEventListener("mousemove", dragMove);
+      document.addEventListener("mouseup", stopDrag);
+    };
+
+    const dragMove = (event: MouseEvent) => {
+      if (!isDragging || !dialog.value) return;
+      dialog.value.style.left = `${event.clientX - offsetX}px`;
+      dialog.value.style.top = `${event.clientY - offsetY}px`;
+    };
+
+    const stopDrag = () => {
+      isDragging = false;
+      document.removeEventListener("mousemove", dragMove);
+      document.removeEventListener("mouseup", stopDrag);
+    };
+
+    return {
+      dialog,
+      cameraAvailable,
+      qrCodeData,
+      selectedFile,
+      videoElement,
+      openCamera,
+      closeCamera,
+      handleFileUpload,
+      uploadQRData,
+      startDrag,
+      triggerFileSelect
+    };
+  },
+});
+</script>
+
+<style scoped>
+.camera-container {
+  text-align: center;
+  padding: 20px;
+}
+
+/* ✅ QR Code Scanning Result */
+.qr-result {
+  margin-top: 15px;
+  font-weight: bold;
+}
+
+/* ✅ Proper Styling for Video Scanner */
+.qr-video {
+  width: 100%;
+  height: 400px;
+  border-radius: 5px;
+  border: 2px solid #ddd;
+  object-fit: cover;
+}
+
+/* ✅ Movable Dialog */
+.modal {
+  width: 100%;
+  max-width: 600px;
+  border-radius: 8px;
+  border: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  position: absolute;
+}
+
+.modal-box {
+  padding: 20px;
+  cursor: grab;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: move;
+}
+
+.btn-close {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+}
+</style>
