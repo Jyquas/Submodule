@@ -552,6 +552,7 @@ formio.WcagSegmentedYesNo.text = {
                         input: true,
                         inputType: "radio",
                         clearOnHide: true,
+                        fieldSet: true,
                         protected: false,
                         persistent: true,
                         encrypt: false,
@@ -560,6 +561,7 @@ formio.WcagSegmentedYesNo.text = {
                         autofocus: false,
                         disabled: false,
                         tableView: false,
+                        dataGridLabel: false,
 
                         values: [
                             {
@@ -733,25 +735,28 @@ formio.WcagSegmentedYesNo.text = {
                         "<form-builder-option property=\"label\"></form-builder-option>" +
                         "<form-builder-option property=\"hideLabel\"></form-builder-option>" +
                         "<form-builder-option-label-position></form-builder-option-label-position>" +
+                        "<form-builder-options-label-position></form-builder-options-label-position>" +
                         "<form-builder-option property=\"description\"></form-builder-option>" +
-                        "<form-builder-option property=\"properties.DescriptionAboveOptions\" type=\"checkbox\" label=\"Show description above options\"></form-builder-option>" +
                         "<form-builder-option property=\"tooltip\"></form-builder-option>" +
                         "<form-builder-option property=\"customClass\"></form-builder-option>" +
                         "<form-builder-option property=\"tabindex\"></form-builder-option>" +
 
                         "<form-builder-option property=\"properties.YesLabel\" label=\"Yes label\"></form-builder-option>" +
                         "<form-builder-option property=\"properties.NoLabel\" label=\"No label\"></form-builder-option>" +
+                        "<form-builder-option property=\"properties.DescriptionAboveOptions\" type=\"checkbox\" label=\"Show description above options\"></form-builder-option>" +
                         "<form-builder-option property=\"properties.ShowTick\" type=\"checkbox\" label=\"Show tick on selected option\"></form-builder-option>" +
                         "<form-builder-option property=\"properties.ToggleSegmentedSelection\" type=\"checkbox\" label=\"Allow selected option to clear on second click\"></form-builder-option>" +
                         "<form-builder-option property=\"properties.SegmentedStyleJson\" label=\"Segmented style JSON\" title=\"Optional JSON overrides for segmented display styling.\"></form-builder-option>" +
 
                         "<form-builder-option property=\"clearOnHide\" type=\"checkbox\" label=\"Clear Value When Hidden\"></form-builder-option>" +
+                        "<form-builder-option property=\"fieldSet\" type=\"checkbox\" label=\"Wrap inside field set\"></form-builder-option>" +
                         "<form-builder-option property=\"protected\" type=\"checkbox\" label=\"Protected\"></form-builder-option>" +
                         "<form-builder-option property=\"persistent\" type=\"checkbox\" label=\"Persistent\"></form-builder-option>" +
                         "<form-builder-option property=\"encrypt\" type=\"checkbox\" label=\"Encrypt\"></form-builder-option>" +
                         "<form-builder-option property=\"hidden\" type=\"checkbox\" label=\"Hidden\"></form-builder-option>" +
                         "<form-builder-option property=\"autofocus\" type=\"checkbox\" label=\"Initial Focus\"></form-builder-option>" +
                         "<form-builder-option property=\"disabled\"></form-builder-option>" +
+                        "<form-builder-option property=\"dataGridLabel\"></form-builder-option>" +
                         "<form-builder-option property=\"tableView\" type=\"checkbox\" label=\"Table View\"></form-builder-option>" +
                     "</ng-form>"
                 );
