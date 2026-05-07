@@ -183,7 +183,7 @@ formio.WcagSegmentedYesNo.text = {
 
                 formioComponentsProvider.register("wcagSegmentedYesNo", {
                     title: "WCAG Segmented Yes/No",
-                    template: "formio/components/wcagsegmentedyesno.html",
+                    template: "formio/components/wcagSegmentedYesNo.html",
 
                     controller: ["$scope", function ($scope) {
                         var component = $scope.component || {};
@@ -637,15 +637,15 @@ formio.WcagSegmentedYesNo.text = {
                     views: [
                         {
                             name: "Display",
-                            template: "formio/components/wcagsegmentedyesno/display.html"
+                            template: "formio/components/wcagSegmentedYesNo/display.html"
                         },
                         {
                             name: "Data",
-                            template: "formio/components/wcagsegmentedyesno/data.html"
+                            template: "formio/components/wcagSegmentedYesNo/data.html"
                         },
                         {
                             name: "Validation",
-                            template: "formio/components/wcagsegmentedyesno/validate.html"
+                            template: "formio/components/wcagSegmentedYesNo/validate.html"
                         },
                         {
                             name: "API",
@@ -664,7 +664,7 @@ formio.WcagSegmentedYesNo.text = {
             }])
 
             .run(["$templateCache", function ($templateCache) {
-                var componentTemplate =
+                $templateCache.put("formio/components/wcagSegmentedYesNo.html",
                     "<ng-form name=\"{{ componentId }}\" ng-model=\"data[component.key]\" ng-model-options=\"{allowInvalid: true}\" custom-validator=\"component.validate.custom\">\n" +
 
                         "<div class=\"form-group formio-component formio-component-wcagSegmentedYesNo formio-component-{{ component.key }} {{ component.customClass }}\" ng-class=\"{ 'has-error': component.error && component.error.message }\">\n" +
@@ -722,14 +722,16 @@ formio.WcagSegmentedYesNo.text = {
 
                         "</div>\n" +
 
-                    "</ng-form>\n";
+                    "</ng-form>\n"
+                );
 
-                var displayTemplate =
+                $templateCache.put("formio/components/wcagSegmentedYesNo/display.html",
                     "<ng-form>" +
                         "<form-builder-option property=\"properties.FieldName\" label=\"Field name\" title=\"Used in required messages. Example: Declaration Type is required.\"></form-builder-option>" +
                         "<form-builder-option property=\"label\"></form-builder-option>" +
                         "<form-builder-option property=\"hideLabel\"></form-builder-option>" +
                         "<form-builder-option-label-position></form-builder-option-label-position>" +
+                        "<form-builder-options-label-position></form-builder-options-label-position>" +
                         "<form-builder-option property=\"description\"></form-builder-option>" +
                         "<form-builder-option property=\"tooltip\"></form-builder-option>" +
                         "<form-builder-option property=\"customClass\"></form-builder-option>" +
@@ -749,11 +751,11 @@ formio.WcagSegmentedYesNo.text = {
                         "<form-builder-option property=\"disabled\"></form-builder-option>" +
                         "<form-builder-option property=\"dataGridLabel\"></form-builder-option>" +
                         "<form-builder-option property=\"tableView\" type=\"checkbox\" label=\"Table View\"></form-builder-option>" +
-                    "</ng-form>";
+                    "</ng-form>"
+                );
 
-                var dataTemplate =
+                $templateCache.put("formio/components/wcagSegmentedYesNo/data.html",
                     "<ng-form>" +
-
                         "<div ng-init=\"" +
                             "component.values = component.values && component.values.length >= 2 ? component.values : [{ label: 'Yes', value: 'yes' }, { label: 'No', value: 'no' }]; " +
                             "component.values[0].label = component.values[0].label || 'Yes'; " +
@@ -787,28 +789,17 @@ formio.WcagSegmentedYesNo.text = {
                             "</div>" +
 
                         "</div>" +
+                    "</ng-form>"
+                );
 
-                    "</ng-form>";
-
-                var validateTemplate =
+                $templateCache.put("formio/components/wcagSegmentedYesNo/validate.html",
                     "<ng-form>" +
                         "<form-builder-option property=\"validate.required\"></form-builder-option>" +
-                        "<form-builder-option property=\"properties.RequireSelection\" type=\"checkbox\" label=\"Require selection before Next/Submit\"></form-builder-option>" +
                         "<form-builder-option property=\"validate.customMessage\"></form-builder-option>" +
                         "<form-builder-option-custom-validation></form-builder-option-custom-validation>" +
-                    "</ng-form>";
-
-                $templateCache.put("formio/components/wcagsegmentedyesno.html", componentTemplate);
-                $templateCache.put("formio/components/wcagSegmentedYesNo.html", componentTemplate);
-
-                $templateCache.put("formio/components/wcagsegmentedyesno/display.html", displayTemplate);
-                $templateCache.put("formio/components/wcagSegmentedYesNo/display.html", displayTemplate);
-
-                $templateCache.put("formio/components/wcagsegmentedyesno/data.html", dataTemplate);
-                $templateCache.put("formio/components/wcagSegmentedYesNo/data.html", dataTemplate);
-
-                $templateCache.put("formio/components/wcagsegmentedyesno/validate.html", validateTemplate);
-                $templateCache.put("formio/components/wcagSegmentedYesNo/validate.html", validateTemplate);
+                        "<form-builder-option property=\"properties.RequireSelection\" type=\"checkbox\" label=\"Require selection before Next/Submit\"></form-builder-option>" +
+                    "</ng-form>"
+                );
             }]);
     }
 };
