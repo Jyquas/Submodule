@@ -1,0 +1,742 @@
+Type.registerNamespace("formio.WcagSegmentedYesNo.text");
+
+/*
+ * WCAG Segmented Yes/No custom component for Form.io form builder.
+ *
+ * Purpose:
+ *
+ * - Provides a dedicated two-option Yes/No control with a segmented/pill-style
+ *   presentation.
+ *
+ * - Keeps segmented Yes/No behaviour separate from wcagRadio so the normal radio
+ *   component can remain stable and focused on standard radio-list rendering.
+ *
+ * Accessibility / behaviour notes:
+ *
+ * - Uses real <input type="radio"> elements underneath so the browser and
+ *   assistive technology still understand the control as a radio group.
+ *
+ * - Uses <fieldset> with a visually hidden <legend> so screen readers receive
+ *   grouped-question semantics without affecting the visible Form.io label
+ *   spacing.
+ *
+ * - Uses FormioUtils.fieldWrap(...) so the visible label, required marker,
+ *   wrapper spacing, and standard Form.io layout behaviour remain consistent
+ *   with other controls.
+ *
+ * - Labels are linked to inputs via <label for="..."> so clicking the segmented
+ *   option reliably targets the underlying radio input.
+ *
+ * - Keyboard support is handled through handleOptionKeydown:
+ *     Space / Enter selects the focused option.
+ *     Arrow keys move between Yes and No.
+ *
+ * - The selected option can optionally be clicked again to clear the value when
+ *   properties.ToggleSegmentedSelection is enabled.
+ *
+ * - aria-required is set on the fieldset/radiogroup and ng-required is set on
+ *   each radio input so both assistive technology and Angular/Form.io validation
+ *   understand the required state.
+ *
+ * Data / values:
+ *
+ * - Stores values as:
+ *     "yes"
+ *     "no"
+ *
+ * - Display labels can be changed through:
+ *     properties.YesLabel
+ *     properties.NoLabel
+ *
+ * Display options:
+ *
+ * - properties.ShowTick controls whether a tick is shown on the selected option.
+ *
+ * - properties.DescriptionAboveOptions controls whether the component description
+ *   appears above or below the segmented options.
+ *
+ * - properties.FieldName can provide a cleaner name for required-field error
+ *   messages by setting component.errorLabel.
+ *
+ * Styling:
+ *
+ * - Core structural CSS is injected once by ensureSegmentedYesNoCss().
+ *
+ * - Per-control colours/sizing can be overridden through
+ *   properties.SegmentedStyleJson. This allows two segmented Yes/No controls on
+ *   the same page to use different colours without relying on global CSS.
+ *
+ * Register:
+ *
+ * formio.WcagSegmentedYesNo.text.registerWcagSegmentedYesNo(app);
+ */
+
+formio.WcagSegmentedYesNo.text = {
+    registerWcagSegmentedYesNo: function (app) {
+
+        var segmentedStyleDefaults = {
+            borderColor: "#0b4670",
+            selectedBackgroundColor: "#00456f",
+            textColor: "#0b4670",
+            selectedTextColor: "#ffffff",
+            hoverBackgroundColor: "#f4f8fb",
+            focusColor: "#ffbf47",
+            borderRadius: "999px",
+            borderWidth: "2px",
+            minHeight: "44px",
+            padding: "8px 14px",
+            maxWidth: ""
+        };
+
+        var ensureSegmentedYesNoCss = function () {
+            var styleId = "wcag-segmented-yesno-css";
+
+            if (document.getElementById(styleId)) {
+                return;
+            }
+
+            var css =
+                ".wcag-segmented-yesno-fieldset {" +
+                    "display:block;" +
+                    "border:0;" +
+                    "margin:0;" +
+                    "padding:0;" +
+                    "min-width:0;" +
+                    "min-inline-size:0;" +
+                    "width:100%;" +
+                    "box-sizing:border-box;" +
+                "}" +
+
+                ".wcag-segmented-yesno-legend {" +
+                    "position:absolute !important;" +
+                    "width:1px !important;" +
+                    "height:1px !important;" +
+                    "padding:0 !important;" +
+                    "margin:-1px !important;" +
+                    "overflow:hidden !important;" +
+                    "clip:rect(0,0,0,0) !important;" +
+                    "white-space:nowrap !important;" +
+                    "border:0 !important;" +
+                "}" +
+
+                ".wcag-segmented-yesno {" +
+                    "display:flex;" +
+                    "width:100%;" +
+                    "border-style:solid;" +
+                    "overflow:hidden;" +
+                    "background:#ffffff;" +
+                    "box-sizing:border-box;" +
+                "}" +
+
+                ".wcag-segmented-yesno-option {" +
+                    "flex:1 1 0;" +
+                    "min-width:0;" +
+                    "margin:0;" +
+                    "padding:0;" +
+                    "position:relative;" +
+                    "cursor:pointer;" +
+                    "background:#ffffff;" +
+                    "overflow:hidden;" +
+                    "box-sizing:border-box;" +
+                "}" +
+
+                ".wcag-segmented-yesno-option + .wcag-segmented-yesno-option {" +
+                    "border-left-style:solid;" +
+                "}" +
+
+                ".wcag-segmented-yesno-label {" +
+                    "display:flex;" +
+                    "align-items:center;" +
+                    "justify-content:center;" +
+                    "gap:.5em;" +
+                    "font:inherit;" +
+                    "font-weight:600;" +
+                    "line-height:1.2;" +
+                    "text-align:center;" +
+                    "box-sizing:border-box;" +
+                "}" +
+
+                ".wcag-segmented-yesno-check {" +
+                    "display:inline-block;" +
+                    "line-height:1;" +
+                "}" +
+
+                ".wcag-segmented-yesno-input {" +
+                    "position:absolute;" +
+                    "opacity:0;" +
+                    "width:1px;" +
+                    "height:1px;" +
+                    "overflow:hidden;" +
+                    "pointer-events:none;" +
+                "}" +
+
+                ".wcag-segmented-yesno-input:focus {" +
+                    "outline:none;" +
+                "}" +
+
+                ".wcag-segmented-yesno-option:focus-within {" +
+                    "outline:none;" +
+                "}";
+
+            var style = document.createElement("style");
+            style.id = styleId;
+            style.type = "text/css";
+
+            if (style.styleSheet) {
+                style.styleSheet.cssText = css;
+            } else {
+                style.appendChild(document.createTextNode(css));
+            }
+
+            document.getElementsByTagName("head")[0].appendChild(style);
+        };
+
+        app
+            .config(["formioComponentsProvider", function (formioComponentsProvider) {
+                formioComponentsProvider.addGroup("HA", {
+                    title: "Home Affairs Custom Components"
+                });
+
+                formioComponentsProvider.register("wcagSegmentedYesNo", {
+                    title: "WCAG Segmented Yes/No",
+                    template: "formio/components/wcagSegmentedYesNo.html",
+
+                    controller: ["$scope", function ($scope) {
+                        ensureSegmentedYesNoCss();
+
+                        var component = $scope.component || {};
+
+                        if (!component.validate) {
+                            component.validate = {};
+                        }
+
+                        if (!component.properties) {
+                            component.properties = {};
+                        }
+
+                        if (!$scope.data) {
+                            $scope.data = {};
+                        }
+
+                        var normalizeBooleanProperty = function (name, defaultValue) {
+                            var value = component.properties[name];
+
+                            if (typeof value === "undefined" || value === null || value === "") {
+                                component.properties[name] = defaultValue;
+                                return defaultValue;
+                            }
+
+                            if (typeof value === "string") {
+                                value = value.toLowerCase() === "true";
+                            } else {
+                                value = !!value;
+                            }
+
+                            component.properties[name] = value;
+                            return value;
+                        };
+
+                        var copyObject = function (source) {
+                            var result = {};
+                            source = source || {};
+
+                            Object.keys(source).forEach(function (key) {
+                                result[key] = source[key];
+                            });
+
+                            return result;
+                        };
+
+                        var getPropertyValue = function (name, defaultValue) {
+                            var value = component.properties[name];
+
+                            if (typeof value === "undefined" || value === null || value === "") {
+                                return defaultValue;
+                            }
+
+                            return value;
+                        };
+
+                        var getSegmentedStyle = function () {
+                            var style = copyObject(segmentedStyleDefaults);
+                            var json = component.properties.SegmentedStyleJson;
+
+                            if (!json || typeof json !== "string") {
+                                return style;
+                            }
+
+                            try {
+                                var overrides = JSON.parse(json);
+
+                                Object.keys(overrides).forEach(function (key) {
+                                    if (
+                                        typeof overrides[key] !== "undefined" &&
+                                        overrides[key] !== null &&
+                                        overrides[key] !== ""
+                                    ) {
+                                        style[key] = overrides[key];
+                                    }
+                                });
+                            } catch (e) {
+                                // Invalid JSON should not break form rendering.
+                                // Fall back to default segmented styles.
+                            }
+
+                            return style;
+                        };
+
+                        normalizeBooleanProperty("RequireSelection", true);
+                        normalizeBooleanProperty("ShowTick", true);
+                        normalizeBooleanProperty("ToggleSegmentedSelection", true);
+                        normalizeBooleanProperty("DescriptionAboveOptions", false);
+
+                        if (component.disabled) {
+                            $scope.readOnly = true;
+                        }
+
+                        if (!component.values || component.values.length < 2) {
+                            component.values = [
+                                {
+                                    label: "Yes",
+                                    value: "yes"
+                                },
+                                {
+                                    label: "No",
+                                    value: "no"
+                                }
+                            ];
+                        }
+
+                        if (typeof component.defaultValue === "undefined" || component.defaultValue === null) {
+                            component.defaultValue = "";
+                        }
+
+                        var fieldDisplayName =
+                            component &&
+                            component.properties &&
+                            component.properties.FieldName
+                                ? String(component.properties.FieldName).trim()
+                                : "";
+
+                        if (fieldDisplayName.length > 0) {
+                            component.errorLabel = fieldDisplayName;
+                        }
+
+                        $scope.focusedIndex = null;
+                        $scope.hoveredIndex = null;
+
+                        $scope.setFocusedIndex = function (index) {
+                            $scope.focusedIndex = index;
+                        };
+
+                        $scope.setHoveredIndex = function (index) {
+                            $scope.hoveredIndex = index;
+                        };
+
+                        $scope.getYesNoOptions = function () {
+                            return [
+                                {
+                                    label: getPropertyValue("YesLabel", "Yes"),
+                                    value: "yes"
+                                },
+                                {
+                                    label: getPropertyValue("NoLabel", "No"),
+                                    value: "no"
+                                }
+                            ];
+                        };
+
+                        $scope.isSelectionRequired = function (currentComponent) {
+                            currentComponent = currentComponent || component;
+
+                            var requiredFromValidation =
+                                currentComponent.validate &&
+                                currentComponent.validate.required === true;
+
+                            var properties = currentComponent.properties || {};
+                            var requiredFromProperty = properties.RequireSelection === true;
+
+                            return requiredFromValidation || requiredFromProperty;
+                        };
+
+                        $scope.showTick = function () {
+                            return component.properties.ShowTick !== false;
+                        };
+
+                        $scope.isToggleEnabled = function () {
+                            return component.properties.ToggleSegmentedSelection !== false;
+                        };
+
+                        $scope.isDescriptionAboveOptions = function () {
+                            return component.properties.DescriptionAboveOptions === true;
+                        };
+
+                        $scope.getContainerStyle = function () {
+                            var s = getSegmentedStyle();
+
+                            var style = {
+                                borderColor: s.borderColor,
+                                borderWidth: s.borderWidth,
+                                borderRadius: s.borderRadius
+                            };
+
+                            if (s.maxWidth) {
+                                style.maxWidth = s.maxWidth;
+                            }
+
+                            return style;
+                        };
+
+                        $scope.getOptionStyle = function (option, index) {
+                            var s = getSegmentedStyle();
+                            var key = component.key;
+                            var isSelected = $scope.data && $scope.data[key] === option.value;
+                            var isHovered = $scope.hoveredIndex === index;
+                            var isFocused = $scope.focusedIndex === index;
+
+                            var style = {
+                                borderColor: s.borderColor,
+                                borderLeftWidth: s.borderWidth
+                            };
+
+                            if (index === 0) {
+                                style.borderTopLeftRadius = s.borderRadius;
+                                style.borderBottomLeftRadius = s.borderRadius;
+                            }
+
+                            if (index === 1) {
+                                style.borderTopRightRadius = s.borderRadius;
+                                style.borderBottomRightRadius = s.borderRadius;
+                            }
+
+                            if (isSelected) {
+                                style.backgroundColor = s.selectedBackgroundColor;
+                            } else if (isHovered && !$scope.readOnly) {
+                                style.backgroundColor = s.hoverBackgroundColor;
+                            }
+
+                            if (isFocused) {
+                                style.boxShadow = "inset 0 0 0 3px " + s.focusColor;
+                                style.zIndex = "2";
+                            } else {
+                                style.boxShadow = "none";
+                                style.zIndex = "auto";
+                            }
+
+                            return style;
+                        };
+
+                        $scope.getLabelStyle = function (option) {
+                            var s = getSegmentedStyle();
+                            var key = component.key;
+                            var isSelected = $scope.data && $scope.data[key] === option.value;
+
+                            return {
+                                minHeight: s.minHeight,
+                                padding: s.padding,
+                                color: isSelected ? s.selectedTextColor : s.textColor
+                            };
+                        };
+
+                        $scope.getFieldsetStyle = function () {
+                            if ($scope.readOnly || component.disabled) {
+                                return {
+                                    opacity: "0.6",
+                                    pointerEvents: "none"
+                                };
+                            }
+
+                            return {};
+                        };
+
+                        $scope.getAriaDescribedBy = function () {
+                            var ids = [];
+
+                            if (component.description) {
+                                ids.push($scope.componentId + "-description");
+                            }
+
+                            return ids.join(" ");
+                        };
+
+                        var triggerUpdate = function () {
+                            var s = $scope;
+
+                            while (s) {
+                                if (typeof s.updateData === "function") {
+                                    s.updateData();
+                                    return;
+                                }
+
+                                s = s.$parent;
+                            }
+                        };
+
+                        $scope.selectOption = function (value) {
+                            if ($scope.readOnly) {
+                                return;
+                            }
+
+                            var key = component.key;
+                            var currentValue = $scope.data[key];
+
+                            if ($scope.isToggleEnabled() && currentValue === value) {
+                                $scope.data[key] = null;
+                            } else {
+                                $scope.data[key] = value;
+                            }
+
+                            triggerUpdate();
+                        };
+
+                        $scope.handleOptionClick = function (event, value, index) {
+                            if ($scope.readOnly) {
+                                if (event) {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                }
+
+                                return;
+                            }
+
+                            if (event) {
+                                event.preventDefault();
+                                event.stopPropagation();
+                            }
+
+                            $scope.selectOption(value);
+                            $scope.focusOptionByIndex(index);
+                        };
+
+                        $scope.focusOptionByIndex = function (index) {
+                            var optionElement = document.getElementById(
+                                $scope.componentId + "-segmented-yesno-input-" + index
+                            );
+
+                            if (optionElement) {
+                                optionElement.focus();
+                            }
+                        };
+
+                        $scope.handleOptionKeydown = function (event, value, index) {
+                            var key = event.key;
+                            var nextIndex = index;
+
+                            if (key === " " || key === "Spacebar" || key === "Enter") {
+                                event.preventDefault();
+                                $scope.selectOption(value);
+                                return;
+                            }
+
+                            if (key === "ArrowRight" || key === "ArrowDown") {
+                                event.preventDefault();
+                                nextIndex = index === 0 ? 1 : 0;
+                                $scope.focusOptionByIndex(nextIndex);
+                                return;
+                            }
+
+                            if (key === "ArrowLeft" || key === "ArrowUp") {
+                                event.preventDefault();
+                                nextIndex = index === 1 ? 0 : 1;
+                                $scope.focusOptionByIndex(nextIndex);
+                            }
+                        };
+                    }],
+
+                    group: "HA",
+                    icon: "fa fa-toggle-on",
+
+                    settings: {
+                        type: "wcagSegmentedYesNo",
+                        key: "segmentedYesNo",
+                        label: "Yes / No",
+                        input: true,
+                        inputType: "radio",
+                        clearOnHide: true,
+                        protected: false,
+                        persistent: true,
+                        encrypt: false,
+                        hidden: false,
+                        hideLabel: false,
+                        autofocus: false,
+                        disabled: false,
+                        tableView: false,
+
+                        values: [
+                            {
+                                label: "Yes",
+                                value: "yes"
+                            },
+                            {
+                                label: "No",
+                                value: "no"
+                            }
+                        ],
+
+                        defaultValue: "",
+
+                        validate: {
+                            required: false
+                        },
+
+                        properties: {
+                            RequireSelection: true,
+                            ShowTick: true,
+                            ToggleSegmentedSelection: true,
+                            DescriptionAboveOptions: false,
+
+                            YesLabel: "Yes",
+                            NoLabel: "No",
+
+                            SegmentedStyleJson: "",
+
+                            FieldName: ""
+                        }
+                    },
+
+                    views: [
+                        {
+                            name: "Display",
+                            template: "formio/components/wcagSegmentedYesNo/display.html"
+                        },
+                        {
+                            name: "Validation",
+                            template: "formio/components/wcagSegmentedYesNo/validate.html"
+                        },
+                        {
+                            name: "API",
+                            template: "formio/components/common/api.html"
+                        },
+                        {
+                            name: "Layout",
+                            template: "formio/components/common/layout.html"
+                        },
+                        {
+                            name: "Conditional",
+                            template: "formio/components/common/conditional.html"
+                        }
+                    ]
+                });
+            }])
+
+            .run(["$templateCache", "FormioUtils", function ($templateCache, FormioUtils) {
+                $templateCache.put("formio/components/wcagSegmentedYesNo.html", FormioUtils.fieldWrap(
+                    "<ng-form " +
+                        "name=\"{{ componentId }}\" " +
+                        "ng-model=\"data[component.key]\" " +
+                        "ng-model-options=\"{allowInvalid: true}\" " +
+                        "custom-validator=\"component.validate.custom\">" +
+
+                        "<fieldset " +
+                            "class=\"wcag-segmented-yesno-fieldset\" " +
+                            "ng-style=\"getFieldsetStyle()\" " +
+                            "aria-required=\"{{ isSelectionRequired(component) ? 'true' : 'false' }}\" " +
+                            "aria-describedby=\"{{ getAriaDescribedBy() }}\">" +
+
+                            "<legend class=\"wcag-segmented-yesno-legend\">{{ component.label }}</legend>" +
+
+                            "<div " +
+                                "id=\"{{ componentId }}-description\" " +
+                                "class=\"help-block\" " +
+                                "ng-if=\"component.description && isDescriptionAboveOptions()\">" +
+                                "{{ component.description }}" +
+                            "</div>" +
+
+                            "<div " +
+                                "class=\"wcag-segmented-yesno\" " +
+                                "ng-style=\"getContainerStyle()\" " +
+                                "role=\"radiogroup\" " +
+                                "aria-label=\"{{ component.label }}\" " +
+                                "aria-describedby=\"{{ getAriaDescribedBy() }}\" " +
+                                "aria-required=\"{{ isSelectionRequired(component) ? 'true' : 'false' }}\">" +
+
+                                "<label " +
+                                    "ng-repeat=\"option in getYesNoOptions() track by $index\" " +
+                                    "class=\"wcag-segmented-yesno-option\" " +
+                                    "ng-class=\"{ 'is-selected': data[component.key] === option.value }\" " +
+                                    "ng-style=\"getOptionStyle(option, $index)\" " +
+                                    "ng-click=\"handleOptionClick($event, option.value, $index)\" " +
+                                    "ng-mouseenter=\"setHoveredIndex($index)\" " +
+                                    "ng-mouseleave=\"setHoveredIndex(null)\" " +
+                                    "for=\"{{ componentId }}-segmented-yesno-input-{{ $index }}\">" +
+
+                                    "<input " +
+                                        "id=\"{{ componentId }}-segmented-yesno-input-{{ $index }}\" " +
+                                        "class=\"wcag-segmented-yesno-input\" " +
+                                        "type=\"radio\" " +
+                                        "name=\"{{ componentId }}_segmented_yesno\" " +
+                                        "ng-model=\"data[component.key]\" " +
+                                        "ng-value=\"option.value\" " +
+                                        "ng-required=\"isSelectionRequired(component)\" " +
+                                        "ng-disabled=\"readOnly || component.disabled\" " +
+                                        "ng-keydown=\"handleOptionKeydown($event, option.value, $index)\" " +
+                                        "ng-focus=\"setFocusedIndex($index)\" " +
+                                        "ng-blur=\"setFocusedIndex(null)\" " +
+                                        "ng-change=\"selectOption(option.value)\" />" +
+
+                                    "<span " +
+                                        "class=\"wcag-segmented-yesno-label\" " +
+                                        "ng-style=\"getLabelStyle(option)\">" +
+                                        "<span " +
+                                            "class=\"wcag-segmented-yesno-check\" " +
+                                            "ng-if=\"data[component.key] === option.value && showTick()\" " +
+                                            "aria-hidden=\"true\">✓</span>" +
+                                        "{{ option.label }}" +
+                                    "</span>" +
+
+                                "</label>" +
+
+                            "</div>" +
+
+                            "<div " +
+                                "id=\"{{ componentId }}-description\" " +
+                                "class=\"help-block\" " +
+                                "ng-if=\"component.description && !isDescriptionAboveOptions()\">" +
+                                "{{ component.description }}" +
+                            "</div>" +
+
+                        "</fieldset>" +
+
+                    "</ng-form>"
+                ));
+
+                $templateCache.put("formio/components/wcagSegmentedYesNo/display.html",
+                    "<ng-form>" +
+                        "<form-builder-option property=\"properties.FieldName\" label=\"Field name\" title=\"Used in required messages. Example: Declaration Type is required.\"></form-builder-option>" +
+                        "<form-builder-option property=\"label\"></form-builder-option>" +
+                        "<form-builder-option property=\"hideLabel\"></form-builder-option>" +
+                        "<form-builder-option-label-position></form-builder-option-label-position>" +
+                        "<form-builder-option property=\"description\"></form-builder-option>" +
+                        "<form-builder-option property=\"properties.DescriptionAboveOptions\" type=\"checkbox\" label=\"Show description above options\"></form-builder-option>" +
+                        "<form-builder-option property=\"tooltip\"></form-builder-option>" +
+                        "<form-builder-option property=\"customClass\"></form-builder-option>" +
+                        "<form-builder-option property=\"tabindex\"></form-builder-option>" +
+
+                        "<form-builder-option property=\"properties.YesLabel\" label=\"Yes label\"></form-builder-option>" +
+                        "<form-builder-option property=\"properties.NoLabel\" label=\"No label\"></form-builder-option>" +
+                        "<form-builder-option property=\"properties.ShowTick\" type=\"checkbox\" label=\"Show tick on selected option\"></form-builder-option>" +
+                        "<form-builder-option property=\"properties.ToggleSegmentedSelection\" type=\"checkbox\" label=\"Allow selected option to clear on second click\"></form-builder-option>" +
+                        "<form-builder-option property=\"properties.SegmentedStyleJson\" label=\"Segmented style JSON\" title=\"Optional JSON overrides for segmented display styling.\"></form-builder-option>" +
+
+                        "<form-builder-option property=\"clearOnHide\" type=\"checkbox\" label=\"Clear Value When Hidden\"></form-builder-option>" +
+                        "<form-builder-option property=\"protected\" type=\"checkbox\" label=\"Protected\"></form-builder-option>" +
+                        "<form-builder-option property=\"persistent\" type=\"checkbox\" label=\"Persistent\"></form-builder-option>" +
+                        "<form-builder-option property=\"encrypt\" type=\"checkbox\" label=\"Encrypt\"></form-builder-option>" +
+                        "<form-builder-option property=\"hidden\" type=\"checkbox\" label=\"Hidden\"></form-builder-option>" +
+                        "<form-builder-option property=\"autofocus\" type=\"checkbox\" label=\"Initial Focus\"></form-builder-option>" +
+                        "<form-builder-option property=\"disabled\"></form-builder-option>" +
+                        "<form-builder-option property=\"tableView\" type=\"checkbox\" label=\"Table View\"></form-builder-option>" +
+                    "</ng-form>"
+                );
+
+                $templateCache.put("formio/components/wcagSegmentedYesNo/validate.html",
+                    "<ng-form>" +
+                        "<form-builder-option property=\"validate.required\"></form-builder-option>" +
+                        "<form-builder-option property=\"properties.RequireSelection\" type=\"checkbox\" label=\"Require selection before Next/Submit\"></form-builder-option>" +
+                        "<form-builder-option property=\"validate.customMessage\"></form-builder-option>" +
+                        "<form-builder-option-custom-validation></form-builder-option-custom-validation>" +
+                    "</ng-form>"
+                );
+            }]);
+    }
+};
