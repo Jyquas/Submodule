@@ -14,6 +14,15 @@ Type.registerNamespace("formio.WcagSegmentedYesNo.text");
  *
  * - Stores the selected value in data[component.key].
  *
+ * - Uses component.values for the visible option labels, matching the normal
+ *   radio component data model.
+ *
+ * - Locks the stored option values to:
+ *     "yes"
+ *     "no"
+ *
+ * - Uses an empty string when no option is selected.
+ *
  * - Uses real <input type="radio"> elements so browser validation,
  *   keyboard interaction, and assistive technology can interpret the control
  *   as a radio group.
@@ -30,10 +39,6 @@ Type.registerNamespace("formio.WcagSegmentedYesNo.text");
  *
  * - Supports required validation through validate.required and/or
  *   properties.RequireSelection.
- *
- * - Allows the visible Yes/No labels to be configured through:
- *     properties.YesLabel
- *     properties.NoLabel
  *
  * - Allows the description to be displayed above or below the segmented
  *   options through properties.DescriptionAboveOptions.
@@ -253,46 +258,83 @@ formio.WcagSegmentedYesNo.text = {
                             return style;
                         };
 
-                        var getPropertyValue = function (name, defaultValue) {
-                            var properties = component.properties || {};
-                            var value = properties[name];
-
-                            if (typeof value === "undefined" || value === null || value === "") {
-                                return defaultValue;
-                            }
-
-                            return value;
-                        };
-
                         var lockYesNoValues = function () {
+                            var values = component.values || [];
+
+                            var yesLabel =
+                                values[0] && values[0].label
+                                    ? values[0].label
+                                    : "Yes";
+
+                            var noLabel =
+                                values[1] && values[1].label
+                                    ? values[1].label
+                                    : "No";
+
                             component.values = [
                                 {
-                                    label: getPropertyValue("YesLabel", "Yes"),
+                                    label: yesLabel,
                                     value: "yes"
                                 },
                                 {
-                                    label: getPropertyValue("NoLabel", "No"),
+                                    label: noLabel,
                                     value: "no"
                                 }
                             ];
                         };
 
+                        var normalizeStoredValue = function () {
+                            var key = component.key;
+
+                            if (
+                                typeof $scope.data[key] === "undefined" ||
+                                $scope.data[key] === null
+                            ) {
+                                $scope.data[key] = "";
+                            }
+
+                            if (
+                                $scope.data[key] !== "" &&
+                                $scope.data[key] !== "yes" &&
+                                $scope.data[key] !== "no"
+                            ) {
+                                $scope.data[key] = "";
+                            }
+                        };
+
                         component.type = "wcagSegmentedYesNo";
                         component.input = true;
                         component.inputType = "radio";
+                        component.dataType = "string";
+                        component.valueType = "string";
 
                         normalizeBooleanProperty("RequireSelection", true);
                         normalizeBooleanProperty("ShowTick", true);
                         normalizeBooleanProperty("ToggleSegmentedSelection", true);
                         normalizeBooleanProperty("DescriptionAboveOptions", false);
 
-                        normalizeStringProperty("YesLabel", "Yes");
-                        normalizeStringProperty("NoLabel", "No");
                         normalizeStringProperty("SegmentedStyleJson", "");
                         normalizeStringProperty("FieldName", "");
 
                         lockYesNoValues();
                         ensureSegmentedYesNoCss();
+
+                        if (
+                            typeof component.defaultValue === "undefined" ||
+                            component.defaultValue === null
+                        ) {
+                            component.defaultValue = "";
+                        }
+
+                        if (
+                            component.defaultValue !== "" &&
+                            component.defaultValue !== "yes" &&
+                            component.defaultValue !== "no"
+                        ) {
+                            component.defaultValue = "";
+                        }
+
+                        normalizeStoredValue();
 
                         if (component.disabled) {
                             $scope.readOnly = true;
@@ -315,10 +357,6 @@ formio.WcagSegmentedYesNo.text = {
                             if (hasLegacyScript) {
                                 component.validate.custom = "";
                             }
-                        }
-
-                        if (typeof component.defaultValue === "undefined" || component.defaultValue === null) {
-                            component.defaultValue = "";
                         }
 
                         var fieldDisplayName =
@@ -344,16 +382,8 @@ formio.WcagSegmentedYesNo.text = {
                         };
 
                         $scope.getSegmentedOptions = function () {
-                            return [
-                                {
-                                    label: getPropertyValue("YesLabel", "Yes"),
-                                    value: "yes"
-                                },
-                                {
-                                    label: getPropertyValue("NoLabel", "No"),
-                                    value: "no"
-                                }
-                            ];
+                            lockYesNoValues();
+                            return component.values;
                         };
 
                         $scope.isSelectionRequired = function (currentComponent) {
@@ -474,6 +504,7 @@ formio.WcagSegmentedYesNo.text = {
 
                         var triggerUpdate = function () {
                             lockYesNoValues();
+                            normalizeStoredValue();
 
                             var s = $scope;
 
@@ -496,7 +527,7 @@ formio.WcagSegmentedYesNo.text = {
                             var currentValue = $scope.data[key];
 
                             if ($scope.isToggleEnabled() && currentValue === value) {
-                                $scope.data[key] = null;
+                                $scope.data[key] = "";
                             } else {
                                 $scope.data[key] = value;
                             }
@@ -576,6 +607,9 @@ formio.WcagSegmentedYesNo.text = {
 
                         input: true,
                         inputType: "radio",
+                        dataType: "string",
+                        valueType: "string",
+
                         inline: false,
                         clearOnHide: true,
                         fieldSet: true,
@@ -611,9 +645,6 @@ formio.WcagSegmentedYesNo.text = {
                             ToggleSegmentedSelection: true,
                             DescriptionAboveOptions: false,
 
-                            YesLabel: "Yes",
-                            NoLabel: "No",
-
                             SegmentedStyleJson: "",
 
                             FieldName: ""
@@ -624,6 +655,10 @@ formio.WcagSegmentedYesNo.text = {
                         {
                             name: "Display",
                             template: "formio/components/wcagSegmentedYesNo/display.html"
+                        },
+                        {
+                            name: "Data",
+                            template: "formio/components/wcagSegmentedYesNo/data.html"
                         },
                         {
                             name: "Validation",
@@ -708,8 +743,6 @@ formio.WcagSegmentedYesNo.text = {
                         "<form-builder-option property=\"customClass\"></form-builder-option>" +
                         "<form-builder-option property=\"tabindex\"></form-builder-option>" +
 
-                        "<form-builder-option property=\"properties.YesLabel\" label=\"Yes label\"></form-builder-option>" +
-                        "<form-builder-option property=\"properties.NoLabel\" label=\"No label\"></form-builder-option>" +
                         "<form-builder-option property=\"properties.DescriptionAboveOptions\" type=\"checkbox\" label=\"Show description above options\"></form-builder-option>" +
                         "<form-builder-option property=\"properties.ShowTick\" type=\"checkbox\" label=\"Show tick on selected option\"></form-builder-option>" +
                         "<form-builder-option property=\"properties.ToggleSegmentedSelection\" type=\"checkbox\" label=\"Allow selected option to clear on second click\"></form-builder-option>" +
@@ -725,6 +758,54 @@ formio.WcagSegmentedYesNo.text = {
                         "<form-builder-option property=\"disabled\"></form-builder-option>" +
                         "<form-builder-option property=\"dataGridLabel\"></form-builder-option>" +
                         "<form-builder-option property=\"tableView\" type=\"checkbox\" label=\"Table View\"></form-builder-option>" +
+                    "</ng-form>"
+                );
+
+                $templateCache.put("formio/components/wcagSegmentedYesNo/data.html",
+                    "<ng-form>" +
+
+                        "<div ng-init=\"" +
+                            "component.values = component.values && component.values.length >= 2 ? component.values : [{ label: 'Yes', value: 'yes' }, { label: 'No', value: 'no' }]; " +
+                            "component.values[0].label = component.values[0].label || 'Yes'; " +
+                            "component.values[1].label = component.values[1].label || 'No'; " +
+                            "component.values[0].value = 'yes'; " +
+                            "component.values[1].value = 'no'; " +
+                            "component.dataType = 'string'; " +
+                            "component.valueType = 'string'; " +
+                            "component.defaultValue = component.defaultValue || '';\">" +
+
+                            "<div class=\"form-group\">" +
+                                "<label class=\"control-label\">Yes label</label>" +
+                                "<input " +
+                                    "type=\"text\" " +
+                                    "class=\"form-control\" " +
+                                    "ng-model=\"component.values[0].label\" " +
+                                    "ng-change=\"component.values[0].value = 'yes'\" />" +
+                                "<div class=\"help-block\">Stored value: yes</div>" +
+                            "</div>" +
+
+                            "<div class=\"form-group\">" +
+                                "<label class=\"control-label\">No label</label>" +
+                                "<input " +
+                                    "type=\"text\" " +
+                                    "class=\"form-control\" " +
+                                    "ng-model=\"component.values[1].label\" " +
+                                    "ng-change=\"component.values[1].value = 'no'\" />" +
+                                "<div class=\"help-block\">Stored value: no</div>" +
+                            "</div>" +
+
+                            "<div class=\"form-group\">" +
+                                "<label class=\"control-label\">Default value</label>" +
+                                "<select class=\"form-control\" ng-model=\"component.defaultValue\">" +
+                                    "<option value=\"\">No default</option>" +
+                                    "<option value=\"yes\">{{ component.values[0].label || 'Yes' }}</option>" +
+                                    "<option value=\"no\">{{ component.values[1].label || 'No' }}</option>" +
+                                "</select>" +
+                                "<div class=\"help-block\">The submitted value remains yes, no, or blank.</div>" +
+                            "</div>" +
+
+                        "</div>" +
+
                     "</ng-form>"
                 );
 
