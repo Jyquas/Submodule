@@ -731,7 +731,6 @@ formio.WcagSegmentedYesNo.text = {
                         "<form-builder-option property=\"label\"></form-builder-option>" +
                         "<form-builder-option property=\"hideLabel\"></form-builder-option>" +
                         "<form-builder-option-label-position></form-builder-option-label-position>" +
-                        "<form-builder-options-label-position></form-builder-options-label-position>" +
                         "<form-builder-option property=\"description\"></form-builder-option>" +
                         "<form-builder-option property=\"tooltip\"></form-builder-option>" +
                         "<form-builder-option property=\"customClass\"></form-builder-option>" +
@@ -767,26 +766,61 @@ formio.WcagSegmentedYesNo.text = {
                             "component.defaultValue = component.defaultValue || '';\">" +
 
                             "<div class=\"form-group\">" +
-                                "<label class=\"control-label\">Yes label</label>" +
-                                "<input type=\"text\" class=\"form-control\" ng-model=\"component.values[0].label\" ng-change=\"component.values[0].value = 'yes'\" />" +
-                                "<div class=\"help-block\">Submitted value: yes</div>" +
+                                "<label class=\"control-label\">Values</label>" +
+
+                                "<div class=\"row\">" +
+                                    "<div class=\"col-sm-8\">" +
+                                        "<label class=\"control-label\">Label</label>" +
+                                    "</div>" +
+                                    "<div class=\"col-sm-4\">" +
+                                        "<label class=\"control-label\">Value</label>" +
+                                    "</div>" +
+                                "</div>" +
+
+                                "<div class=\"row\" style=\"margin-bottom:10px;\">" +
+                                    "<div class=\"col-sm-8\">" +
+                                        "<input " +
+                                            "type=\"text\" " +
+                                            "class=\"form-control\" " +
+                                            "ng-model=\"component.values[0].label\" " +
+                                            "ng-change=\"component.values[0].value = 'yes'\" />" +
+                                    "</div>" +
+                                    "<div class=\"col-sm-4\">" +
+                                        "<input " +
+                                            "type=\"text\" " +
+                                            "class=\"form-control\" " +
+                                            "ng-model=\"component.values[0].value\" " +
+                                            "ng-disabled=\"true\" />" +
+                                    "</div>" +
+                                "</div>" +
+
+                                "<div class=\"row\">" +
+                                    "<div class=\"col-sm-8\">" +
+                                        "<input " +
+                                            "type=\"text\" " +
+                                            "class=\"form-control\" " +
+                                            "ng-model=\"component.values[1].label\" " +
+                                            "ng-change=\"component.values[1].value = 'no'\" />" +
+                                    "</div>" +
+                                    "<div class=\"col-sm-4\">" +
+                                        "<input " +
+                                            "type=\"text\" " +
+                                            "class=\"form-control\" " +
+                                            "ng-model=\"component.values[1].value\" " +
+                                            "ng-disabled=\"true\" />" +
+                                    "</div>" +
+                                "</div>" +
+
+                                "<div class=\"help-block\">" +
+                                    "Labels are configurable. Submitted values are locked to yes and no." +
+                                "</div>" +
                             "</div>" +
 
-                            "<div class=\"form-group\">" +
-                                "<label class=\"control-label\">No label</label>" +
-                                "<input type=\"text\" class=\"form-control\" ng-model=\"component.values[1].label\" ng-change=\"component.values[1].value = 'no'\" />" +
-                                "<div class=\"help-block\">Submitted value: no</div>" +
-                            "</div>" +
-
-                            "<div class=\"form-group\">" +
-                                "<label class=\"control-label\">Default value</label>" +
-                                "<select class=\"form-control\" ng-model=\"component.defaultValue\">" +
-                                    "<option value=\"\">No default</option>" +
-                                    "<option value=\"yes\">{{ component.values[0].label || 'Yes' }}</option>" +
-                                    "<option value=\"no\">{{ component.values[1].label || 'No' }}</option>" +
-                                "</select>" +
-                                "<div class=\"help-block\">The submitted value remains yes, no, or blank.</div>" +
-                            "</div>" +
+                            "<form-builder-option " +
+                                "property=\"defaultValue\" " +
+                                "label=\"Default Value\" " +
+                                "title=\"Use yes, no, or leave blank.\">" +
+                            "</form-builder-option>" +
 
                         "</div>" +
                     "</ng-form>"
