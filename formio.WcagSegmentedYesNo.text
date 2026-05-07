@@ -21,7 +21,7 @@ Type.registerNamespace("formio.WcagSegmentedYesNo.text");
  *
  * - Renders its own wrapper instead of FormioUtils.fieldWrap(...). In this older
  *   Form.io build, fieldWrap can leak the generic validation-message template
- *   list into the builder preview.
+ *   list into the builder preview for this custom component.
  *
  * - Labels are linked to inputs via <label for="..."> so clicking the segmented
  *   option reliably targets the underlying radio input.
@@ -293,18 +293,16 @@ formio.WcagSegmentedYesNo.text = {
                             $scope.readOnly = true;
                         }
 
-                        if (!component.values || component.values.length < 2) {
-                            component.values = [
-                                {
-                                    label: "Yes",
-                                    value: "yes"
-                                },
-                                {
-                                    label: "No",
-                                    value: "no"
-                                }
-                            ];
-                        }
+                        component.values = [
+                            {
+                                label: "Yes",
+                                value: "yes"
+                            },
+                            {
+                                label: "No",
+                                value: "no"
+                            }
+                        ];
 
                         if (typeof component.defaultValue === "undefined" || component.defaultValue === null) {
                             component.defaultValue = "";
@@ -397,16 +395,6 @@ formio.WcagSegmentedYesNo.text = {
                                 borderColor: s.borderColor,
                                 borderLeftWidth: s.borderWidth
                             };
-
-                            if (index === 0) {
-                                style.borderTopLeftRadius = s.borderRadius;
-                                style.borderBottomLeftRadius = s.borderRadius;
-                            }
-
-                            if (index === 1) {
-                                style.borderTopRightRadius = s.borderRadius;
-                                style.borderBottomRightRadius = s.borderRadius;
-                            }
 
                             if (isSelected) {
                                 style.backgroundColor = s.selectedBackgroundColor;
@@ -546,11 +534,9 @@ formio.WcagSegmentedYesNo.text = {
                     icon: "fa fa-toggle-on",
 
                     settings: {
-                        type: "wcagSegmentedYesNo",
-                        key: "segmentedYesNo",
-                        label: "Yes / No",
                         input: true,
                         inputType: "radio",
+                        inline: false,
                         clearOnHide: true,
                         fieldSet: true,
                         protected: false,
@@ -692,8 +678,7 @@ formio.WcagSegmentedYesNo.text = {
                                             "ng-disabled=\"readOnly || component.disabled\" " +
                                             "ng-keydown=\"handleOptionKeydown($event, option.value, $index)\" " +
                                             "ng-focus=\"setFocusedIndex($index)\" " +
-                                            "ng-blur=\"setFocusedIndex(null)\" " +
-                                            "ng-change=\"selectOption(option.value)\" />" +
+                                            "ng-blur=\"setFocusedIndex(null)\" />" +
 
                                         "<span " +
                                             "class=\"wcag-segmented-yesno-label\" " +
