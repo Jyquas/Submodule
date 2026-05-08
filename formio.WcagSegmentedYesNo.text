@@ -183,7 +183,7 @@ formio.WcagSegmentedYesNo.text = {
 
                 formioComponentsProvider.register("wcagSegmentedYesNo", {
                     title: "WCAG Segmented Yes/No",
-                    template: "formio/components/wcagsegmentedyesno.html",
+                    template: "formio/components/wcagSegmentedYesNo.html",
 
                     controller: ["$scope", function ($scope) {
                         var component = $scope.component || {};
@@ -637,15 +637,15 @@ formio.WcagSegmentedYesNo.text = {
                     views: [
                         {
                             name: "Display",
-                            template: "formio/components/wcagsegmentedyesno/display.html"
+                            template: "formio/components/wcagSegmentedYesNo/display.html"
                         },
                         {
                             name: "Data",
-                            template: "formio/components/wcagsegmentedyesno/data.html"
+                            template: "formio/components/wcagSegmentedYesNo/data.html"
                         },
                         {
                             name: "Validation",
-                            template: "formio/components/wcagsegmentedyesno/validate.html"
+                            template: "formio/components/wcagSegmentedYesNo/validate.html"
                         },
                         {
                             name: "API",
@@ -663,68 +663,58 @@ formio.WcagSegmentedYesNo.text = {
                 });
             }])
 
-            .run(["$templateCache", function ($templateCache) {
-                var runtimeTemplate =
-                    "<ng-form name=\"{{ componentId }}\" ng-model=\"data[component.key]\" ng-model-options=\"{allowInvalid: true}\" custom-validator=\"component.validate.custom\">\n" +
+            .run(["$templateCache", "FormioUtils", function ($templateCache, FormioUtils) {
+                $templateCache.put("formio/components/wcagSegmentedYesNo.html", FormioUtils.fieldWrap(
+                    "<ng-form name=\"{{ componentId }}\" ng-model=\"data[component.key]\" ng-click=\"updateData()\" ng-model-options=\"{allowInvalid: true}\" custom-validator=\"component.validate.custom\">\n" +
 
-                        "<div class=\"form-group formio-component formio-component-wcagSegmentedYesNo formio-component-{{ component.key }} {{ component.customClass }}\" ng-class=\"{ 'has-error': component.error && component.error.message }\">\n" +
+                        "<fieldset id=\"{{ componentId }}-group\" class=\"wcag-segmented-yesno-fieldset\" ng-style=\"getFieldsetStyle()\" aria-required=\"{{ isSelectionRequired(component) ? 'true' : 'false' }}\" aria-describedby=\"{{ getAriaDescribedBy() }}\">\n" +
 
-                            "<label id=\"{{ componentId }}-label\" class=\"control-label\" ng-if=\"!component.hideLabel\">\n" +
-                                "{{ component.label }}\n" +
-                                "<span ng-if=\"isSelectionRequired(component)\" class=\"text-danger\" aria-hidden=\"true\"> *</span>\n" +
-                            "</label>\n" +
+                            "<legend class=\"wcag-segmented-yesno-legend\">{{ component.label }}</legend>\n" +
 
-                            "<fieldset id=\"{{ componentId }}-group\" class=\"wcag-segmented-yesno-fieldset\" ng-style=\"getFieldsetStyle()\" aria-labelledby=\"{{ component.hideLabel ? componentId + '-legend' : componentId + '-label' }}\" aria-required=\"{{ isSelectionRequired(component) ? 'true' : 'false' }}\" aria-describedby=\"{{ getAriaDescribedBy() }}\">\n" +
+                            "<div id=\"{{ componentId }}-description\" class=\"help-block\" ng-if=\"component.description && isDescriptionAboveOptions()\">{{ component.description }}</div>\n" +
 
-                                "<legend id=\"{{ componentId }}-legend\" class=\"wcag-segmented-yesno-legend\">{{ component.label }}</legend>\n" +
+                            "<div class=\"wcag-segmented-yesno\" ng-style=\"getSegmentedContainerStyle()\" role=\"radiogroup\" aria-required=\"{{ isSelectionRequired(component) ? 'true' : 'false' }}\" aria-describedby=\"{{ getAriaDescribedBy() }}\">\n" +
 
-                                "<div id=\"{{ componentId }}-description\" class=\"help-block\" ng-if=\"component.description && isDescriptionAboveOptions()\">{{ component.description }}</div>\n" +
+                                "<label " +
+                                    "ng-repeat=\"option in getSegmentedOptions() track by $index\" " +
+                                    "class=\"wcag-segmented-yesno-option\" " +
+                                    "ng-class=\"{ 'is-selected': data[component.key] === option.value }\" " +
+                                    "ng-style=\"getSegmentedOptionStyle(option, $index)\" " +
+                                    "ng-click=\"handleSegmentedOptionClick($event, option.value, $index)\" " +
+                                    "ng-mouseenter=\"setSegmentedHoveredIndex($index)\" " +
+                                    "ng-mouseleave=\"setSegmentedHoveredIndex(null)\" " +
+                                    "for=\"{{ componentId }}-segmented-input-{{ $index }}\">\n" +
 
-                                "<div class=\"wcag-segmented-yesno\" ng-style=\"getSegmentedContainerStyle()\" role=\"radiogroup\" aria-labelledby=\"{{ component.hideLabel ? componentId + '-legend' : componentId + '-label' }}\" aria-required=\"{{ isSelectionRequired(component) ? 'true' : 'false' }}\" aria-describedby=\"{{ getAriaDescribedBy() }}\">\n" +
+                                    "<input " +
+                                        "id=\"{{ componentId }}-segmented-input-{{ $index }}\" " +
+                                        "class=\"wcag-segmented-yesno-input\" " +
+                                        "type=\"radio\" " +
+                                        "name=\"{{ componentId }}_segmented_yesno\" " +
+                                        "ng-model=\"data[component.key]\" " +
+                                        "ng-value=\"option.value\" " +
+                                        "ng-required=\"isSelectionRequired(component)\" " +
+                                        "ng-disabled=\"readOnly || component.disabled\" " +
+                                        "ng-keydown=\"handleOptionKeydown($event, option.value, $index)\" " +
+                                        "ng-focus=\"setSegmentedFocusedIndex($index)\" " +
+                                        "ng-blur=\"setSegmentedFocusedIndex(null)\" />\n" +
 
-                                    "<label " +
-                                        "ng-repeat=\"option in getSegmentedOptions() track by $index\" " +
-                                        "class=\"wcag-segmented-yesno-option\" " +
-                                        "ng-class=\"{ 'is-selected': data[component.key] === option.value }\" " +
-                                        "ng-style=\"getSegmentedOptionStyle(option, $index)\" " +
-                                        "ng-click=\"handleSegmentedOptionClick($event, option.value, $index)\" " +
-                                        "ng-mouseenter=\"setSegmentedHoveredIndex($index)\" " +
-                                        "ng-mouseleave=\"setSegmentedHoveredIndex(null)\" " +
-                                        "for=\"{{ componentId }}-segmented-input-{{ $index }}\">\n" +
+                                    "<span class=\"wcag-segmented-yesno-label\" ng-style=\"getSegmentedLabelStyle(option)\">\n" +
+                                        "<span class=\"wcag-segmented-yesno-check\" ng-if=\"data[component.key] === option.value && showTick()\" aria-hidden=\"true\">✓</span>\n" +
+                                        "{{ option.label }}\n" +
+                                    "</span>\n" +
 
-                                        "<input " +
-                                            "id=\"{{ componentId }}-segmented-input-{{ $index }}\" " +
-                                            "class=\"wcag-segmented-yesno-input\" " +
-                                            "type=\"radio\" " +
-                                            "name=\"{{ componentId }}_segmented_yesno\" " +
-                                            "ng-model=\"data[component.key]\" " +
-                                            "ng-value=\"option.value\" " +
-                                            "ng-required=\"isSelectionRequired(component)\" " +
-                                            "ng-disabled=\"readOnly || component.disabled\" " +
-                                            "ng-keydown=\"handleOptionKeydown($event, option.value, $index)\" " +
-                                            "ng-focus=\"setSegmentedFocusedIndex($index)\" " +
-                                            "ng-blur=\"setSegmentedFocusedIndex(null)\" />\n" +
+                                "</label>\n" +
 
-                                        "<span class=\"wcag-segmented-yesno-label\" ng-style=\"getSegmentedLabelStyle(option)\">\n" +
-                                            "<span class=\"wcag-segmented-yesno-check\" ng-if=\"data[component.key] === option.value && showTick()\" aria-hidden=\"true\">✓</span>\n" +
-                                            "{{ option.label }}\n" +
-                                        "</span>\n" +
+                            "</div>\n" +
 
-                                    "</label>\n" +
+                            "<div id=\"{{ componentId }}-description\" class=\"help-block\" ng-if=\"component.description && !isDescriptionAboveOptions()\">{{ component.description }}</div>\n" +
 
-                                "</div>\n" +
+                        "</fieldset>\n" +
 
-                                "<div id=\"{{ componentId }}-description\" class=\"help-block\" ng-if=\"component.description && !isDescriptionAboveOptions()\">{{ component.description }}</div>\n" +
+                    "</ng-form>\n"
+                ));
 
-                                "<div id=\"{{ componentId }}-error\" class=\"help-block\" ng-if=\"component.error && component.error.message\">{{ component.error.message }}</div>\n" +
-
-                            "</fieldset>\n" +
-
-                        "</div>\n" +
-
-                    "</ng-form>\n";
-
-                var displayTemplate =
+                $templateCache.put("formio/components/wcagSegmentedYesNo/display.html",
                     "<ng-form>" +
                         "<form-builder-option property=\"properties.FieldName\" label=\"Field name\" title=\"Used in required messages. Example: Declaration Type is required.\"></form-builder-option>" +
                         "<form-builder-option property=\"label\"></form-builder-option>" +
@@ -751,14 +741,13 @@ formio.WcagSegmentedYesNo.text = {
                         "<form-builder-option property=\"disabled\"></form-builder-option>" +
                         "<form-builder-option property=\"dataGridLabel\"></form-builder-option>" +
                         "<form-builder-option property=\"tableView\" type=\"checkbox\" label=\"Table View\"></form-builder-option>" +
-                    "</ng-form>";
+                    "</ng-form>"
+                );
 
-                var dataTemplate =
+                $templateCache.put("formio/components/wcagSegmentedYesNo/data.html",
                     "<ng-form>" +
                         "<div ng-init=\"" +
                             "component.values = component.values && component.values.length >= 2 ? component.values : [{ label: 'Yes', value: 'yes' }, { label: 'No', value: 'no' }]; " +
-                            "component.values[0].label = component.values[0].label || 'Yes'; " +
-                            "component.values[1].label = component.values[1].label || 'No'; " +
                             "component.values[0].value = 'yes'; " +
                             "component.values[1].value = 'no'; " +
                             "component.dataType = 'string'; " +
@@ -823,27 +812,17 @@ formio.WcagSegmentedYesNo.text = {
                             "</form-builder-option>" +
 
                         "</div>" +
-                    "</ng-form>";
+                    "</ng-form>"
+                );
 
-                var validateTemplate =
+                $templateCache.put("formio/components/wcagSegmentedYesNo/validate.html",
                     "<ng-form>" +
                         "<form-builder-option property=\"validate.required\"></form-builder-option>" +
                         "<form-builder-option property=\"validate.customMessage\"></form-builder-option>" +
                         "<form-builder-option-custom-validation></form-builder-option-custom-validation>" +
                         "<form-builder-option property=\"properties.RequireSelection\" type=\"checkbox\" label=\"Require selection before Next/Submit\"></form-builder-option>" +
-                    "</ng-form>";
-
-                $templateCache.put("formio/components/wcagsegmentedyesno.html", runtimeTemplate);
-                $templateCache.put("formio/components/wcagSegmentedYesNo.html", runtimeTemplate);
-
-                $templateCache.put("formio/components/wcagsegmentedyesno/display.html", displayTemplate);
-                $templateCache.put("formio/components/wcagSegmentedYesNo/display.html", displayTemplate);
-
-                $templateCache.put("formio/components/wcagsegmentedyesno/data.html", dataTemplate);
-                $templateCache.put("formio/components/wcagSegmentedYesNo/data.html", dataTemplate);
-
-                $templateCache.put("formio/components/wcagsegmentedyesno/validate.html", validateTemplate);
-                $templateCache.put("formio/components/wcagSegmentedYesNo/validate.html", validateTemplate);
+                    "</ng-form>"
+                );
             }]);
     }
 };
